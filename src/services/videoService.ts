@@ -1,5 +1,11 @@
-
 import { toast } from "sonner";
+
+export interface CaptionTrack {
+  id: string;
+  language: string;
+  name: string;
+  trackKind: string;
+}
 
 export interface VideoData {
   id: string;
@@ -12,6 +18,7 @@ export interface VideoData {
   link: string;
   transcription?: string;
   saved?: boolean;
+  captionTracks?: CaptionTrack[];
 }
 
 // YouTube API key
@@ -114,7 +121,7 @@ const getFallbackVideos = (query: string): VideoData[] => {
   ];
 };
 
-export const getTranscription = async (videoId: string): Promise<string> => {
+export const getTranscription = async (videoId: string): Promise<{text: string; tracks?: CaptionTrack[]}> => {
   try {
     // First, try to get the caption tracks available for the video
     const captionsResponse = await fetch(
@@ -141,18 +148,32 @@ export const getTranscription = async (videoId: string): Promise<string> => {
       
       // Since we can't directly get the transcript content through the API without OAuth,
       // we'll return a message explaining the situation
-      return "Transcription not available through the public API. For a real implementation, the app would need OAuth2 authentication or a third-party service that can extract YouTube captions.";
+      return {
+        text: "Transcription not available through the public API. For a real implementation, the app would need OAuth2 authentication or a third-party service that can extract YouTube captions."
+      };
     }
+    
+    // Process the available caption tracks
+    const tracks = captionsData.items.map((item: any) => ({
+      id: item.id,
+      language: item.snippet.language,
+      name: item.snippet.name || item.snippet.language.toUpperCase(),
+      trackKind: item.snippet.trackKind
+    }));
     
     // In a real implementation, we would download and parse the caption track
     // But this requires authentication with a user token
-    // So we'll return a placeholder message for now
-    return `Transcription is available for this video. There are ${captionsData.items.length} caption tracks available.`;
+    // So we'll return a placeholder message and the available tracks
+    return {
+      text: `Transcription is available for this video. Select a track below:`,
+      tracks
+    };
     
   } catch (error) {
     console.error("Error fetching transcription:", error);
     // Fallback to a generated transcription based on the video title and description
-    return generateFallbackTranscription(videoId);
+    const text = await generateFallbackTranscription(videoId);
+    return { text };
   }
 };
 

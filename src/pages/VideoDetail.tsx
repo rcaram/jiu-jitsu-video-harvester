@@ -10,12 +10,14 @@ import {
   saveVideo, 
   removeVideo, 
   videoExists,
-  getTranscription 
+  getTranscription,
+  CaptionTrack
 } from "@/services/videoService";
-import { BookmarkPlus, Trash2, ExternalLink, User, Calendar, Eye } from "lucide-react";
+import { BookmarkPlus, Trash2, ExternalLink, User, Calendar, Eye, FileText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const VideoDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +25,10 @@ const VideoDetail = () => {
   const [video, setVideo] = useState<VideoData | null>(null);
   const [saved, setSaved] = useState(false);
   const [transcription, setTranscription] = useState("");
+  const [captionTracks, setCaptionTracks] = useState<CaptionTrack[]>([]);
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
+  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
+  const [tracksOpen, setTracksOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -32,6 +37,9 @@ const VideoDetail = () => {
         setVideo(videoData);
         setSaved(true);
         setTranscription(videoData.transcription || "");
+        if (videoData.captionTracks) {
+          setCaptionTracks(videoData.captionTracks);
+        }
       } else {
         // For demo purposes, create a mock video if not in storage
         setVideo({
@@ -50,15 +58,24 @@ const VideoDetail = () => {
   }, [id]);
 
   const fetchTranscription = async () => {
-    if (!transcription && id) {
+    if (id) {
       setIsLoadingTranscript(true);
       try {
-        const text = await getTranscription(id);
-        setTranscription(text);
+        const result = await getTranscription(id);
+        setTranscription(result.text);
         
-        // If the video is saved, update it with the transcription
+        if (result.tracks && result.tracks.length > 0) {
+          setCaptionTracks(result.tracks);
+          setTracksOpen(true);
+        }
+        
+        // If the video is saved, update it with the transcription and tracks
         if (saved && video) {
-          const updatedVideo = { ...video, transcription: text };
+          const updatedVideo = { 
+            ...video, 
+            transcription: result.text,
+            captionTracks: result.tracks
+          };
           saveVideo(updatedVideo);
           setVideo(updatedVideo);
         }
@@ -71,12 +88,23 @@ const VideoDetail = () => {
     }
   };
 
+  const handleTrackSelect = (trackId: string) => {
+    setSelectedTrackId(trackId);
+    const track = captionTracks.find(t => t.id === trackId);
+    if (track) {
+      toast.info(`Selected ${track.language} track. In a full implementation, this would load the specific caption content.`);
+    }
+  };
+
   const handleSave = () => {
     if (video) {
       if (!saved) {
         const videoToSave = { ...video };
         if (transcription) {
           videoToSave.transcription = transcription;
+        }
+        if (captionTracks.length > 0) {
+          videoToSave.captionTracks = captionTracks;
         }
         saveVideo(videoToSave);
         setSaved(true);
@@ -195,9 +223,46 @@ const VideoDetail = () => {
                     ) : transcription ? (
                       <div>
                         <h3 className="font-semibold mb-2">Video Transcription</h3>
-                        <div className="text-gray-700 whitespace-pre-line">
+                        <div className="text-gray-700 whitespace-pre-line mb-4">
                           {transcription}
                         </div>
+                        
+                        {captionTracks.length > 0 && (
+                          <Collapsible
+                            open={tracksOpen}
+                            onOpenChange={setTracksOpen}
+                            className="mt-4 border rounded-md p-2"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex gap-2 items-center">
+                                <FileText size={16} />
+                                <h4 className="font-medium">Available Caption Tracks</h4>
+                              </div>
+                              <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  {tracksOpen ? "Hide" : "Show"} tracks
+                                </Button>
+                              </CollapsibleTrigger>
+                            </div>
+                            
+                            <CollapsibleContent className="mt-2">
+                              <div className="grid gap-2">
+                                {captionTracks.map((track) => (
+                                  <div 
+                                    key={track.id}
+                                    className={`p-2 border rounded-md cursor-pointer ${selectedTrackId === track.id ? 'bg-blue-50 border-blue-200' : ''}`}
+                                    onClick={() => handleTrackSelect(track.id)}
+                                  >
+                                    <div className="font-medium">{track.name || track.language.toUpperCase()}</div>
+                                    <div className="text-sm text-gray-500">
+                                      Language: {track.language}, Type: {track.trackKind}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        )}
                       </div>
                     ) : (
                       <div className="text-center py-6">
