@@ -14,8 +14,8 @@ export interface VideoData {
   saved?: boolean;
 }
 
-// YouTube API key - in a real app, this should be stored in environment variables
-const YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY"; // Replace with your YouTube API key
+// YouTube API key
+const YOUTUBE_API_KEY = "AIzaSyDviM8U560B8muZ2lF3AgMxWHpZ23kJTcM";
 
 export const searchVideos = async (query: string): Promise<VideoData[]> => {
   try {
