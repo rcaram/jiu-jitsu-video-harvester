@@ -13,7 +13,7 @@ import {
   getTranscription,
   CaptionTrack
 } from "@/services/videoService";
-import { BookmarkPlus, Trash2, ExternalLink, User, Calendar, Eye, FileText } from "lucide-react";
+import { BookmarkPlus, Trash2, ExternalLink, User, Calendar, Eye, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -228,40 +228,50 @@ const VideoDetail = () => {
                         </div>
                         
                         {captionTracks.length > 0 && (
-                          <Collapsible
-                            open={tracksOpen}
-                            onOpenChange={setTracksOpen}
-                            className="mt-4 border rounded-md p-2"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex gap-2 items-center">
-                                <FileText size={16} />
-                                <h4 className="font-medium">Available Caption Tracks</h4>
+                          <div className="mt-6 border rounded-md">
+                            <Collapsible
+                              open={tracksOpen}
+                              onOpenChange={setTracksOpen}
+                              className="w-full"
+                            >
+                              <div className="flex items-center px-4 py-3 border-b">
+                                <div className="flex gap-2 items-center flex-1">
+                                  <FileText size={16} />
+                                  <h4 className="font-medium">Available Caption Tracks</h4>
+                                </div>
+                                <CollapsibleTrigger className="flex items-center justify-center">
+                                  <Button variant="ghost" size="sm" className="p-0 h-8 w-8">
+                                    {tracksOpen ? (
+                                      <ChevronUp className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </CollapsibleTrigger>
                               </div>
-                              <CollapsibleTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  {tracksOpen ? "Hide" : "Show"} tracks
-                                </Button>
-                              </CollapsibleTrigger>
-                            </div>
-                            
-                            <CollapsibleContent className="mt-2">
-                              <div className="grid gap-2">
-                                {captionTracks.map((track) => (
-                                  <div 
-                                    key={track.id}
-                                    className={`p-2 border rounded-md cursor-pointer ${selectedTrackId === track.id ? 'bg-blue-50 border-blue-200' : ''}`}
-                                    onClick={() => handleTrackSelect(track.id)}
-                                  >
-                                    <div className="font-medium">{track.name || track.language.toUpperCase()}</div>
-                                    <div className="text-sm text-gray-500">
-                                      Language: {track.language}, Type: {track.trackKind}
+                              
+                              <CollapsibleContent>
+                                <div className="p-3 space-y-2">
+                                  {captionTracks.map((track) => (
+                                    <div 
+                                      key={track.id}
+                                      className={`p-3 border rounded-md cursor-pointer transition-colors hover:bg-blue-50 ${
+                                        selectedTrackId === track.id 
+                                          ? 'bg-blue-100 border-blue-300' 
+                                          : 'bg-white border-gray-200'
+                                      }`}
+                                      onClick={() => handleTrackSelect(track.id)}
+                                    >
+                                      <div className="font-medium">{track.name || track.language.toUpperCase()}</div>
+                                      <div className="text-sm text-gray-500">
+                                        Language: {track.language}, Type: {track.trackKind}
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </CollapsibleContent>
-                          </Collapsible>
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          </div>
                         )}
                       </div>
                     ) : (
