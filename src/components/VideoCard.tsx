@@ -1,4 +1,3 @@
-
 import { VideoData, saveVideo, videoExists } from "@/services/videoService";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,11 +15,21 @@ interface VideoCardProps {
 const VideoCard = ({ video, isSaved = false }: VideoCardProps) => {
   const [saved, setSaved] = useState(isSaved || videoExists(video.id));
   
-  const handleSave = () => {
-    if (!saved) {
-      saveVideo(video);
-      setSaved(true);
-      toast.success("Video saved to your collection!");
+  const handleSaveVideo = async () => {
+    try {
+      await saveVideo(video);
+      setSaved(!saved);
+      toast({
+        title: saved ? "Video removed" : "Video saved",
+        description: saved ? "The video has been removed from your saved videos." : "The video has been added to your saved videos.",
+      });
+    } catch (error) {
+      console.error("Error saving video:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "There was an error saving the video. Please try again.",
+      });
     }
   };
   
@@ -58,7 +67,7 @@ const VideoCard = ({ video, isSaved = false }: VideoCardProps) => {
         <Button 
           variant={saved ? "secondary" : "default"}
           className={saved ? "w-full bg-gray-100 text-gray-600" : "w-full bg-bjj-blue hover:bg-bjj-accent"}
-          onClick={handleSave}
+          onClick={handleSaveVideo}
           disabled={saved}
         >
           <BookmarkPlus size={16} className="mr-2" />
