@@ -1,3 +1,4 @@
+
 import { VideoData, saveVideo, videoExists } from "@/services/videoService";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ interface VideoCardProps {
 }
 
 const VideoCard = ({ video, isSaved = false }: VideoCardProps) => {
-  const [saved, setSaved] = useState(isSaved || videoExists(video.id));
+  const [saved, setSaved] = useState<boolean>(isSaved || videoExists(video.id));
   
   const handleSaveVideo = async () => {
     try {
