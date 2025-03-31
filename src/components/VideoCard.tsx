@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { BookmarkPlus, Eye, Calendar } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -14,23 +14,25 @@ interface VideoCardProps {
 }
 
 const VideoCard = ({ video, isSaved = false }: VideoCardProps) => {
-  const [saved, setSaved] = useState<boolean>(isSaved || videoExists(video.id));
+  const [saved, setSaved] = useState<boolean>(isSaved);
+  
+  // Initialize saved state with async check
+  useEffect(() => {
+    const checkIfSaved = async () => {
+      const exists = await videoExists(video.id);
+      setSaved(isSaved || exists);
+    };
+    checkIfSaved();
+  }, [video.id, isSaved]);
   
   const handleSaveVideo = async () => {
     try {
       await saveVideo(video);
       setSaved(!saved);
-      toast({
-        title: saved ? "Video removed" : "Video saved",
-        description: saved ? "The video has been removed from your saved videos." : "The video has been added to your saved videos.",
-      });
+      toast.success(saved ? "Video removed from your saved videos" : "Video saved to your collection");
     } catch (error) {
       console.error("Error saving video:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "There was an error saving the video. Please try again.",
-      });
+      toast.error("There was an error saving the video. Please try again.");
     }
   };
   

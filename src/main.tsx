@@ -7,28 +7,34 @@ import './index.css';
 // Get Clerk publishable key from environment variables
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-// Default to a dummy key in development to avoid breaking the app
-// This will show a special development banner but allow the app to load
-const isDevelopment = import.meta.env.DEV;
-const defaultDevKey = "pk_test_dummy-key-for-development";
+// Check if we have a valid publishable key
+const hasValidClerkKey = PUBLISHABLE_KEY && PUBLISHABLE_KEY.startsWith('pk_');
 
-// Use the actual key if available, otherwise use the dev key in development only
-const clerkKey = PUBLISHABLE_KEY || (isDevelopment ? defaultDevKey : "");
+// Create the root element for React rendering
+const rootElement = document.getElementById("root");
+if (!rootElement) throw new Error("Root element not found");
+const root = createRoot(rootElement);
 
-if (!clerkKey) {
-  throw new Error("Missing Clerk Publishable Key. Please set VITE_CLERK_PUBLISHABLE_KEY in your environment variables.");
+// Render the app, conditionally wrapping with ClerkProvider if we have a valid key
+if (hasValidClerkKey) {
+  root.render(
+    <ClerkProvider 
+      publishableKey={PUBLISHABLE_KEY}
+      clerkJSVersion="5.56.0-snapshot.v20250312225817"
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up" 
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/"
+      afterSignOutUrl="/">
+      <App />
+    </ClerkProvider>
+  );
+} else {
+  // If no valid Clerk key is found, render the app without ClerkProvider and show warning
+  console.warn(
+    "No valid Clerk publishable key found. Authentication features will not work. " +
+    "Please add your VITE_CLERK_PUBLISHABLE_KEY to .env file."
+  );
+  
+  root.render(<App />);
 }
-
-// Render the app with Clerk provider
-createRoot(document.getElementById("root")!).render(
-  <ClerkProvider 
-    publishableKey={clerkKey}
-    clerkJSVersion="5.56.0-snapshot.v20250312225817"
-    signInUrl="/sign-in"
-    signUpUrl="/sign-up" 
-    signInFallbackRedirectUrl="/dashboard"
-    signUpFallbackRedirectUrl="/"
-    afterSignOutUrl="/">
-    <App />
-  </ClerkProvider>
-);

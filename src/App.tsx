@@ -4,8 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useState } from "react";
-import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+import { useState, useEffect } from "react";
+import { SignedIn, SignedOut, RedirectToSignIn, useAuth } from "@clerk/clerk-react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SavedVideos from "./pages/SavedVideos";
@@ -13,8 +13,17 @@ import VideoDetail from "./pages/VideoDetail";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 
-// Protected route component
+// Check if Clerk is available
+const isClerkAvailable = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+// Protected route component that conditionally checks authentication
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  // If Clerk is not configured, allow access but show a notification or alternative UI
+  if (!isClerkAvailable) {
+    return <>{children}</>;
+  }
+  
+  // If Clerk is configured, use the normal protection
   return (
     <>
       <SignedIn>{children}</SignedIn>
@@ -37,8 +46,12 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/sign-in" element={<SignIn />} />
-            <Route path="/sign-up" element={<SignUp />} />
+            {isClerkAvailable && (
+              <>
+                <Route path="/sign-in" element={<SignIn />} />
+                <Route path="/sign-up" element={<SignUp />} />
+              </>
+            )}
             <Route 
               path="/saved" 
               element={
