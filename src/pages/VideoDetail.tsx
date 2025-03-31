@@ -4,20 +4,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  getVideoById, 
-  VideoData, 
-  saveVideo, 
-  removeVideo, 
-  videoExists,
-  getTranscription,
-  CaptionTrack
-} from "@/services/videoService";
+import { VideoData, CaptionTrack } from "@/services/videoService";
 import { BookmarkPlus, Trash2, ExternalLink, User, Calendar, Eye, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useVideo } from "@/services/videoService";
+import { useAuth } from "@clerk/clerk-react";
 
 const VideoDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,33 +23,46 @@ const VideoDetail = () => {
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
   const [tracksOpen, setTracksOpen] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+  const { getVideoById, videoExists, saveVideo, removeVideo, getTranscription } = useVideo();
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
-    if (id) {
-      const videoData = getVideoById(id);
-      if (videoData) {
-        setVideo(videoData);
-        setSaved(true);
-        setTranscription(videoData.transcription || "");
-        if (videoData.captionTracks) {
-          setCaptionTracks(videoData.captionTracks);
+    const checkVideoStatus = async () => {
+      if (id) {
+        setIsCheckingStatus(true);
+        // Check if video is saved
+        const exists = await videoExists(id);
+        setSaved(exists);
+        
+        // Get video data if saved
+        const videoData = await getVideoById(id);
+        
+        if (videoData) {
+          setVideo(videoData);
+          setTranscription(videoData.transcription || "");
+          if (videoData.captionTracks) {
+            setCaptionTracks(videoData.captionTracks);
+          }
+        } else {
+          // For demo purposes, create a mock video if not in storage
+          setVideo({
+            id,
+            title: "Brazilian Jiu-Jitsu Technique Demo",
+            description: "This is a detailed breakdown of an essential BJJ technique that every practitioner should know. The video covers proper form, common mistakes, and variations for different body types and skill levels.",
+            thumbnail: "https://via.placeholder.com/640x360?text=BJJ+Video",
+            publishedAt: "2023-09-15T14:30:00Z",
+            viewCount: "187,432",
+            channelTitle: "BJJ Masters",
+            link: `https://youtube.com/watch?v=${id}`
+          });
         }
-      } else {
-        // For demo purposes, create a mock video if not in storage
-        setVideo({
-          id,
-          title: "Brazilian Jiu-Jitsu Technique Demo",
-          description: "This is a detailed breakdown of an essential BJJ technique that every practitioner should know. The video covers proper form, common mistakes, and variations for different body types and skill levels.",
-          thumbnail: "https://via.placeholder.com/640x360?text=BJJ+Video",
-          publishedAt: "2023-09-15T14:30:00Z",
-          viewCount: "187,432",
-          channelTitle: "BJJ Masters",
-          link: `https://youtube.com/watch?v=${id}`
-        });
-        setSaved(videoExists(id));
+        setIsCheckingStatus(false);
       }
-    }
-  }, [id]);
+    };
+    
+    checkVideoStatus();
+  }, [id, getVideoById, videoExists]);
 
   const fetchTranscription = async () => {
     if (id) {
@@ -76,7 +83,7 @@ const VideoDetail = () => {
             transcription: result.text,
             captionTracks: result.tracks
           };
-          saveVideo(updatedVideo);
+          await saveVideo(updatedVideo);
           setVideo(updatedVideo);
         }
       } catch (error) {
@@ -96,8 +103,19 @@ const VideoDetail = () => {
     }
   };
 
-  const handleSave = () => {
-    if (video) {
+  const handleSaveAction = async () => {
+    if (!isSignedIn) {
+      if (saved) {
+        // Allow unauthenticated users to remove videos from local storage
+        await removeVideo(video!.id);
+        setSaved(false);
+      } else {
+        // Redirect to sign in for saving videos if not authenticated
+        toast.info("Sign in to save videos to your collection");
+        navigate("/sign-in");
+        return;
+      }
+    } else if (video) {
       if (!saved) {
         const videoToSave = { ...video };
         if (transcription) {
@@ -106,22 +124,21 @@ const VideoDetail = () => {
         if (captionTracks.length > 0) {
           videoToSave.captionTracks = captionTracks;
         }
-        saveVideo(videoToSave);
+        await saveVideo(videoToSave);
         setSaved(true);
-        toast.success("Video saved to your collection!");
       } else {
-        removeVideo(video.id);
+        await removeVideo(video.id);
         setSaved(false);
-        toast.success("Video removed from your collection");
       }
     }
   };
 
-  if (!video) {
+  if (isCheckingStatus || !video) {
     return (
       <Layout>
         <div className="text-center py-12">
-          <p>Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-bjj-blue mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading video details...</p>
         </div>
       </Layout>
     );
@@ -171,7 +188,7 @@ const VideoDetail = () => {
             <div className="flex gap-3 mb-6">
               <Button 
                 variant={saved ? "destructive" : "default"}
-                onClick={handleSave}
+                onClick={handleSaveAction}
                 className={saved ? "" : "bg-bjj-blue hover:bg-bjj-accent"}
               >
                 {saved ? (

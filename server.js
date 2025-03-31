@@ -3,6 +3,12 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import fs from 'fs/promises';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config();
 
@@ -17,11 +23,73 @@ if (!YOUTUBE_API_KEY) {
   process.exit(1);
 }
 
+// Database path
+const DB_PATH = path.join(__dirname, 'db');
+const USERS_PATH = path.join(DB_PATH, 'users');
+
+// Create database directories if they don't exist
+const initDatabase = async () => {
+  try {
+    await fs.mkdir(DB_PATH, { recursive: true });
+    await fs.mkdir(USERS_PATH, { recursive: true });
+    console.log('Database directories created successfully');
+  } catch (error) {
+    console.error('Error creating database directories:', error);
+  }
+};
+
+initDatabase();
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// API endpoints
+// Get user's directory path
+const getUserDir = (userId) => path.join(USERS_PATH, userId);
+
+// Get user's videos file path
+const getUserVideosPath = (userId) => path.join(getUserDir(userId), 'videos.json');
+
+// Create user directory if it doesn't exist
+const createUserDirIfNotExists = async (userId) => {
+  const userDir = getUserDir(userId);
+  try {
+    await fs.mkdir(userDir, { recursive: true });
+  } catch (error) {
+    console.error(`Error creating directory for user ${userId}:`, error);
+    throw error;
+  }
+};
+
+// Get user's saved videos
+const getUserVideos = async (userId) => {
+  const videosPath = getUserVideosPath(userId);
+  try {
+    const data = await fs.readFile(videosPath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      // File doesn't exist, return empty array
+      return [];
+    }
+    console.error(`Error reading videos for user ${userId}:`, error);
+    throw error;
+  }
+};
+
+// Save user's videos
+const saveUserVideos = async (userId, videos) => {
+  await createUserDirIfNotExists(userId);
+  const videosPath = getUserVideosPath(userId);
+  try {
+    await fs.writeFile(videosPath, JSON.stringify(videos, null, 2));
+  } catch (error) {
+    console.error(`Error saving videos for user ${userId}:`, error);
+    throw error;
+  }
+};
+
+// API endpoints for videos
 app.get('/api/videos/search', async (req, res) => {
   try {
     const query = req.query.q;
@@ -165,6 +233,92 @@ I hope you found this demonstration helpful for your BJJ journey. Remember to tr
     res.status(500).json({ 
       text: "This is a sample transcription for the requested video. In a real app, this would be fetched from YouTube's API or a transcription service. For Brazilian Jiu-Jitsu videos, this transcription would contain detailed explanations of techniques, positions, and strategies."
     });
+  }
+});
+
+// API endpoints for user's videos
+app.get('/api/users/:userId/videos', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const videos = await getUserVideos(userId);
+    res.json(videos);
+  } catch (error) {
+    console.error('Error fetching saved videos:', error);
+    res.status(500).json({ message: 'Error fetching saved videos' });
+  }
+});
+
+app.post('/api/users/:userId/videos', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const video = req.body;
+    
+    // Validate video object
+    if (!video || !video.id) {
+      return res.status(400).json({ message: 'Invalid video data' });
+    }
+    
+    // Get existing videos
+    const videos = await getUserVideos(userId);
+    
+    // Check if video already exists
+    const exists = videos.some(v => v.id === video.id);
+    if (exists) {
+      return res.status(409).json({ message: 'Video already saved' });
+    }
+    
+    // Add new video with saved flag
+    videos.push({ ...video, saved: true });
+    
+    // Save videos
+    await saveUserVideos(userId, videos);
+    
+    res.status(201).json({ message: 'Video saved successfully' });
+  } catch (error) {
+    console.error('Error saving video:', error);
+    res.status(500).json({ message: 'Error saving video' });
+  }
+});
+
+app.delete('/api/users/:userId/videos/:videoId', async (req, res) => {
+  try {
+    const { userId, videoId } = req.params;
+    
+    // Get existing videos
+    const videos = await getUserVideos(userId);
+    
+    // Remove video
+    const updatedVideos = videos.filter(v => v.id !== videoId);
+    
+    // Check if video was found and removed
+    if (videos.length === updatedVideos.length) {
+      return res.status(404).json({ message: 'Video not found' });
+    }
+    
+    // Save updated videos
+    await saveUserVideos(userId, updatedVideos);
+    
+    res.json({ message: 'Video removed successfully' });
+  } catch (error) {
+    console.error('Error removing video:', error);
+    res.status(500).json({ message: 'Error removing video' });
+  }
+});
+
+app.get('/api/users/:userId/videos/:videoId/exists', async (req, res) => {
+  try {
+    const { userId, videoId } = req.params;
+    
+    // Get existing videos
+    const videos = await getUserVideos(userId);
+    
+    // Check if video exists
+    const exists = videos.some(v => v.id === videoId);
+    
+    res.json({ exists });
+  } catch (error) {
+    console.error('Error checking if video exists:', error);
+    res.status(500).json({ message: 'Error checking if video exists' });
   }
 });
 

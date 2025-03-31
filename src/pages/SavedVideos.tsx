@@ -2,22 +2,46 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import VideoCard from "@/components/VideoCard";
-import { getSavedVideos, VideoData, removeVideo } from "@/services/videoService";
+import { VideoData } from "@/services/videoService";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { useVideo } from "@/services/videoService";
+import { useAuth } from "@clerk/clerk-react";
 
 const SavedVideos = () => {
   const [videos, setVideos] = useState<VideoData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { getSavedVideos, removeVideo } = useVideo();
+  const { isSignedIn } = useAuth();
   
   useEffect(() => {
-    const savedVideos = getSavedVideos();
-    setVideos(savedVideos);
-  }, []);
+    const loadSavedVideos = async () => {
+      setIsLoading(true);
+      const savedVideos = await getSavedVideos();
+      setVideos(savedVideos);
+      setIsLoading(false);
+    };
+    
+    loadSavedVideos();
+  }, [getSavedVideos]);
 
-  const handleRemove = (videoId: string) => {
-    removeVideo(videoId);
+  const handleRemove = async (videoId: string) => {
+    await removeVideo(videoId);
     setVideos(videos.filter(v => v.id !== videoId));
   };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-3xl font-bold mb-6 text-bjj-blue">Saved Videos</h1>
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-bjj-blue"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -50,11 +74,20 @@ const SavedVideos = () => {
               <div className="text-6xl mb-4">📚</div>
               <h3 className="text-xl font-medium mb-2">No Saved Videos</h3>
               <p className="text-gray-600 mb-4">
-                You haven't saved any BJJ videos yet. Search for videos and save them to your collection.
+                {isSignedIn 
+                  ? "You haven't saved any BJJ videos yet. Search for videos and save them to your collection."
+                  : "Sign in to save and access your BJJ videos across devices."}
               </p>
-              <Button className="bg-bjj-blue hover:bg-bjj-accent" asChild>
-                <a href="/">Search Videos</a>
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button className="bg-bjj-blue hover:bg-bjj-accent" asChild>
+                  <a href="/">Search Videos</a>
+                </Button>
+                {!isSignedIn && (
+                  <Button variant="outline" asChild>
+                    <a href="/sign-in">Sign In</a>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         )}
