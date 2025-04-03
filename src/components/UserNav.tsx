@@ -20,9 +20,9 @@ export function UserNav() {
         />
       ) : (
         <Button variant="outline" asChild size="sm">
-          <Link to="/sign-in" className="flex items-center gap-2">
+          <Link to="/login" className="flex items-center gap-2">
             <LogIn size={16} />
-            <span>Sign In</span>
+            <span>Login</span>
           </Link>
         </Button>
       )}

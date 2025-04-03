@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { SignedIn, SignedOut, RedirectToSignIn, useAuth } from "@clerk/clerk-react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -12,6 +12,7 @@ import SavedVideos from "./pages/SavedVideos";
 import VideoDetail from "./pages/VideoDetail";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import Login from "./pages/Login";
 
 // Check if Clerk is available
 const isClerkAvailable = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -50,6 +51,7 @@ const App = () => {
               <>
                 <Route path="/sign-in" element={<SignIn />} />
                 <Route path="/sign-up" element={<SignUp />} />
+                <Route path="/login" element={<Login />} />
               </>
             )}
             <Route 
