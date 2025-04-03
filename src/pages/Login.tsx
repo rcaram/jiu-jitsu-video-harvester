@@ -11,7 +11,7 @@ const Login = () => {
   const [activeTab, setActiveTab] = useState<"sign-in" | "sign-up">("sign-in");
 
   if (isSignedIn) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/search" replace />;
   }
 
   return (

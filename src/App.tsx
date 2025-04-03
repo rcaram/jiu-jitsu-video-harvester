@@ -46,14 +46,30 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            {/* Redirect root to login if not signed in, to search if signed in */}
+            <Route 
+              path="/" 
+              element={
+                isClerkAvailable ? (
+                  <SignedIn>
+                    <Navigate to="/search" replace />
+                  </SignedIn>
+                ) : (
+                  <Navigate to="/search" replace />
+                )
+              } 
+            />
+            <Route path="/search" element={<Index />} />
+            
+            {/* Auth routes */}
+            <Route path="/login" element={<Login />} />
             {isClerkAvailable && (
               <>
-                <Route path="/sign-in" element={<SignIn />} />
-                <Route path="/sign-up" element={<SignUp />} />
-                <Route path="/login" element={<Login />} />
+                <Route path="/sign-in" element={<Navigate to="/login" replace />} />
+                <Route path="/sign-up" element={<Navigate to="/login" replace />} />
               </>
             )}
+            
             <Route 
               path="/saved" 
               element={

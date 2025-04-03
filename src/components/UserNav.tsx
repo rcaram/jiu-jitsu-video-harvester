@@ -11,7 +11,7 @@ export function UserNav() {
     <div className="flex items-center gap-4">
       {isSignedIn ? (
         <UserButton 
-          afterSignOutUrl="/"
+          afterSignOutUrl="/login"
           appearance={{
             elements: {
               userButtonBox: "h-8 w-8",
