@@ -6,15 +6,17 @@ import VideoCard from "@/components/VideoCard";
 import { VideoData, searchVideos } from "@/services/videoService";
 import { toast } from "sonner";
 
+type Provider = "youtube" | "vimeo" | "bilibili";
+
 const Index = () => {
   const [searchResults, setSearchResults] = useState<VideoData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = async (query: string, provider: Provider) => {
     setIsLoading(true);
     try {
-      const results = await searchVideos(query);
+      const results = await searchVideos(query, provider);
       setSearchResults(results);
       setHasSearched(true);
       

@@ -32,7 +32,7 @@ export interface VideoData {
 }
 
 // API functions that communicate with our backend
-export const searchVideos = fetchVideos;
+export const searchVideos = (query: string, provider: 'youtube' | 'vimeo' | 'bilibili') => fetchVideos(query, provider);
 export const getTranscription = fetchTranscription;
 
 // Storage key for fallback when user is not authenticated
@@ -75,10 +75,10 @@ export const saveVideo = async (video: VideoData, userId?: string): Promise<void
 };
 
 // Remove video based on authentication status
-export const removeVideo = async (videoId: string, userId?: string): Promise<void> => {
+export const removeVideo = async (videoId: string, provider: 'youtube' | 'vimeo' | 'bilibili', userId?: string): Promise<void> => {
   if (userId) {
     // Remove from server for authenticated users
-    const success = await removeVideoFromServer(userId, videoId);
+    const success = await removeVideoFromServer(userId, videoId, provider);
     if (success) {
       toast.success("Video removed from saved list.");
     }
@@ -87,7 +87,7 @@ export const removeVideo = async (videoId: string, userId?: string): Promise<voi
     const savedVideos = localStorage.getItem(STORAGE_KEY);
     if (savedVideos) {
       const videos = JSON.parse(savedVideos);
-      const updatedVideos = videos.filter((v: VideoData) => v.id !== videoId);
+      const updatedVideos = videos.filter((v: VideoData) => !(v.id === videoId && v.provider === provider));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedVideos));
       toast.success("Video removed from saved list.");
     }
@@ -95,16 +95,16 @@ export const removeVideo = async (videoId: string, userId?: string): Promise<voi
 };
 
 // Check if video exists based on authentication status
-export const videoExists = async (videoId: string, userId?: string): Promise<boolean> => {
+export const videoExists = async (videoId: string, provider: 'youtube' | 'vimeo' | 'bilibili', userId?: string): Promise<boolean> => {
   if (userId) {
     // Check on server for authenticated users
-    return await checkVideoExists(userId, videoId);
+    return await checkVideoExists(userId, videoId, provider);
   } else {
     // Fallback to localStorage for unauthenticated users
     const savedVideos = localStorage.getItem(STORAGE_KEY);
     if (!savedVideos) return false;
     const videos = JSON.parse(savedVideos);
-    return videos.some((v: VideoData) => v.id === videoId);
+    return videos.some((v: VideoData) => v.id === videoId && v.provider === provider);
   }
 };
 
@@ -133,8 +133,8 @@ export const useVideo = () => {
     getTranscription,
     getSavedVideos: () => getSavedVideos(currentUserId),
     saveVideo: (video: VideoData) => saveVideo(video, currentUserId),
-    removeVideo: (videoId: string) => removeVideo(videoId, currentUserId),
-    videoExists: (videoId: string) => videoExists(videoId, currentUserId),
+    removeVideo: (videoId: string, provider: 'youtube' | 'vimeo' | 'bilibili') => removeVideo(videoId, provider, currentUserId),
+    videoExists: (videoId: string, provider: 'youtube' | 'vimeo' | 'bilibili') => videoExists(videoId, provider, currentUserId),
     getVideoById: (videoId: string) => getVideoById(videoId, currentUserId),
   };
 };
