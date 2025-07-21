@@ -2,31 +2,49 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Youtube } from "lucide-react";
+import { Search, Youtube, Video } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type Provider = "youtube" | "vimeo" | "bilibili";
 
 interface SearchBarProps {
-  onSearch: (query: string) => void;
+  onSearch: (query: string, provider: Provider) => void;
   isLoading?: boolean;
 }
 
 const SearchBar = ({ onSearch, isLoading = false }: SearchBarProps) => {
   const [query, setQuery] = useState("");
+  const [provider, setProvider] = useState<Provider>("youtube");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      onSearch(query);
+      onSearch(query, provider);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full max-w-xl mx-auto">
       <div className="flex items-center gap-2">
-        <Youtube size={24} className="text-red-600" />
-        <h3 className="text-lg font-medium">Search YouTube for BJJ Videos</h3>
+        <Video size={24} className="text-bjj-blue" />
+        <h3 className="text-lg font-medium">Search for BJJ Videos</h3>
       </div>
       
       <div className="flex gap-2 w-full">
+        <Select value={provider} onValueChange={(value) => setProvider(value as Provider)}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue placeholder="Provider" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="youtube">
+              <div className="flex items-center gap-2">
+                <Youtube size={16} className="text-red-600" /> YouTube
+              </div>
+            </SelectItem>
+            <SelectItem value="vimeo" disabled>Vimeo</SelectItem>
+            <SelectItem value="bilibili" disabled>Bilibili</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="flex-1 relative">
           <Input
             type="text"

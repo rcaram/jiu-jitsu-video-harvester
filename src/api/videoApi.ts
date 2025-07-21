@@ -4,9 +4,9 @@ import { VideoData, CaptionTrack } from "@/services/videoService";
 
 const API_BASE_URL = "/api";
 
-export const fetchVideos = async (query: string): Promise<VideoData[]> => {
+export const fetchVideos = async (query: string, provider: 'youtube' | 'vimeo' | 'bilibili'): Promise<VideoData[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/videos/search?q=${encodeURIComponent(query)}`);
+    const response = await fetch(`${API_BASE_URL}/videos/search?q=${encodeURIComponent(query)}&provider=${provider}`);
     
     if (!response.ok) {
       const error = await response.json();
@@ -21,9 +21,9 @@ export const fetchVideos = async (query: string): Promise<VideoData[]> => {
   }
 };
 
-export const fetchTranscription = async (videoId: string): Promise<{text: string; tracks?: CaptionTrack[]}> => {
+export const fetchTranscription = async (videoId: string, provider: 'youtube' | 'vimeo' | 'bilibili'): Promise<{text: string; tracks?: CaptionTrack[]}> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/videos/${videoId}/transcription`);
+    const response = await fetch(`${API_BASE_URL}/videos/${provider}/${videoId}/transcription`);
     
     if (!response.ok) {
       const error = await response.json();
@@ -77,9 +77,9 @@ export const saveVideoToServer = async (userId: string, video: VideoData): Promi
   }
 };
 
-export const removeVideoFromServer = async (userId: string, videoId: string): Promise<boolean> => {
+export const removeVideoFromServer = async (userId: string, videoId: string, provider: 'youtube' | 'vimeo' | 'bilibili'): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/videos/${videoId}`, {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/videos/${provider}/${videoId}`, {
       method: 'DELETE',
     });
     
@@ -96,9 +96,9 @@ export const removeVideoFromServer = async (userId: string, videoId: string): Pr
   }
 };
 
-export const checkVideoExists = async (userId: string, videoId: string): Promise<boolean> => {
+export const checkVideoExists = async (userId: string, videoId: string, provider: 'youtube' | 'vimeo' | 'bilibili'): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/videos/${videoId}/exists`);
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/videos/${provider}/${videoId}/exists`);
     
     if (!response.ok) {
       const error = await response.json();
